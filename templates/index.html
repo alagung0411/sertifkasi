@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Song Database</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Apply new font to the entire page */
+        body {
+            background-color: #f4f4f9;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Animation for elements */
+        .card, .btn, footer .col {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover, .btn:hover {
+            transform: translateY(-5px); /* Slight lift effect */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); /* Slight shadow effect */
+        }
+
+        footer {
+            background-color: #343a40;
+            color: white;
+            padding: 30px 0;
+        }
+
+        footer .col {
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        footer .col:hover {
+            transform: translateY(-3px); /* Lift footer content slightly on hover */
+        }
+
+        .card {
+            margin: 10px 0;
+        }
+
+        .btn {
+            margin-top: 10px;
+        }
+
+        .star-rating {
+            font-size: 1.5em;
+            color: gold;
+        }
+        
+        /* Button animation */
+        .btn-primary {
+            transition: transform 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05); /* Slight scale-up effect */
+        }
+
+        /* Page Title Animation */
+        h1, h2 {
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Song Database</h1>
+
+        <!-- Page to Add Song -->
+        <div id="add-song-page" class="mt-4">
+            <h2>Add a Song</h2>
+            <form id="song-form">
+                <div class="mb-3">
+                    <label for="url" class="form-label">Song URL</label>
+                    <input type="text" class="form-control" id="url_give" placeholder="Enter Song URL">
+                </div>
+                <div class="mb-3">
+                    <label for="star" class="form-label">Rating</label>
+                    <select class="form-control" id="star_give">
+                        <option value="1">⭐</option>
+                        <option value="2">⭐⭐</option>
+                        <option value="3">⭐⭐⭐</option>
+                        <option value="4">⭐⭐⭐⭐</option>
+                        <option value="5">⭐⭐⭐⭐⭐</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="comment" class="form-label">Comment</label>
+                    <input type="text" class="form-control" id="comment_give" placeholder="Enter Comment">
+                </div>
+                <button type="submit" class="btn btn-primary">Add Song</button>
+            </form>
+            <hr>
+            <a href="#" class="btn btn-secondary" id="view-database-btn">Go to Song Database</a>
+        </div>
+
+        <div id="song-database-page" class="mt-4" style="display: none;">
+            <h2>Song Database</h2>
+            <div id="song-list" class="row">
+            </div>
+            <hr>
+            <button class="btn btn-primary" id="add-song-btn">Add Song Again</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function loadSongs() {
+            $.get("/song", function(response) {
+                const songs = response.songs;
+                let songList = $('#song-list');
+                songList.empty();
+
+                songs.forEach(function(song) {
+                    let songCard = `
+                        <div class="col-md-4">
+                            <div class="card">
+                                <img src="${song.image}" class="card-img-top" alt="${song.title}">
+                                <div class="card-body">
+                                    <h5 class="card-title">${song.title}</h5>
+                                    <p class="card-text">${song.description}</p>
+                                    <p class="star-rating">${'⭐'.repeat(song.star)}</p>
+                                    <p class="mycomment">${song.comment}</p>
+                                    <button onclick="updateSong('${song.title}')" class="btn btn-warning">Update</button>
+                                    <button onclick="deleteSong('${song.title}')" class="btn btn-danger">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    songList.append(songCard);
+                });
+            });
+        }
+
+        $('#song-form').submit(function(event) {
+            event.preventDefault();
+
+            let url = $('#url_give').val();
+            let star = $('#star_give').val(); 
+            let comment = $('#comment_give').val();
+
+            $.post("/song", {
+                url_give: url,
+                star_give: star,
+                comment_give: comment
+            }, function(response) {
+                $('#add-song-page').hide();
+                $('#song-database-page').show();
+                loadSongs();
+            });
+        });
+
+        $('#add-song-btn').click(function() {
+            $('#song-database-page').hide();
+            $('#add-song-page').show();
+        });
+
+        function updateSong(title) {
+            let newImage = prompt("Enter new image URL:");
+            let newStar = prompt("Enter new rating (1-5):");
+            let newComment = prompt("Enter new comment:");
+            let newDescription = prompt("Enter new description:");
+
+            $.ajax({
+                type: 'PUT',
+                url: '/song/' + title,
+                data: {
+                    image_give: newImage,
+                    star_give: newStar,
+                    comment_give: newComment,
+                    description_give: newDescription
+                },
+                success: function(response) {
+                    alert(response['msg']);
+                    loadSongs();
+                }
+            });
+        }
+
+        function deleteSong(title) {
+            $.ajax({
+                type: 'DELETE',
+                url: '/song/' + title,
+                success: function(response) {
+                    alert(response['msg']);
+                    loadSongs();
+                }
+            });
+        }
+
+        $('#view-database-btn').click(function() {
+            $('#add-song-page').hide();
+            $('#song-database-page').show();
+            loadSongs();
+        });
+
+        $(document).ready(function() {
+            loadSongs();
+        });
+    </script>
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>Tentang Saya</h5>
+                    <p>Al Agung Jati Wicaksono, Bogor, 11276885</p>
+                </div>
+
+                <div class="col-md-4">
+                    <h5>Hobi</h5>
+                    <p>Bermain Musik</p>
+                    <p>Bernyanyi</p>
+                    <p>Traveling</p>
+                </div>
+
+                <div class="col-md-4">
+                    <h5>Kontak</h5>
+                    <p>Email: alagungjatiw@gmail.com</p>
+                    <p>Instagram: albertsagungg_</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
